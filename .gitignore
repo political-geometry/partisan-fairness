@@ -1,2 +1,7 @@
 .ipynb_checkpoints/
 .DS_Store
+data/GA-shapefiles/
+data/MA_no_islands_12_16/
+data/MA_precincts_12_16/
+data/MD-shapefiles/
+data/TX_vtds/
