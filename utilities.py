@@ -293,10 +293,10 @@ def make_partisan_symmetry_table(labels,actual_vote_share_list, actual_seat_shar
         seats = seat_list[i]
 
         mean_median = 0.5 - compute_mean_median_intercept(votes, seats)
-        partisan_bias = 0.5 - compute_partisan_bias_intercept(votes, seats)
+        partisan_bias = compute_partisan_bias_intercept(votes, seats) - 0.5
         
         symmetric_s, s_intersect_symmetric = compute_symmetric_intercept(rep_vote_share, rep_seat_share, votes, seats)
-        partisan_symmetry = symmetric_s - s_intersect_symmetric
+        partisan_symmetry = s_intersect_symmetric - symmetric_s 
         signed_area = compute_signed_area_between_curves(votes, seats)
         unsigned_area = compute_unsigned_area_between_curves(votes,seats)
         print(row_format.format(labels[i], str(round(unsigned_area,2)), str(round(partisan_symmetry,2)), str(round(partisan_bias,2)), str(round(mean_median,2))))
