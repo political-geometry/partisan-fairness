@@ -27,9 +27,9 @@ Each notebook is aimed at illustrating a key concept relevant to measuring parti
 
 ## The data
 
-Some of the data needed to run the notebooks is in the `data/` subdirectory, but we've held off on duplicating data that's already stored in other Github repositories. You'll want to download that elsewhere and copy it into you `data` directory. Links to the relevant data sources are below: 
+Some of the data needed to run the notebooks is in the `data/` subdirectory, but we've held off on duplicating data that's already stored in other Github repositories. You'll want to download that elsewhere and copy it into your `data` directory. Links to the relevant data sources are below: 
 
-* [Congressional Electrion results from The Daily Kos](https://docs.google.com/spreadsheets/d/1whYBonfwlgTGnYl7U_IH31G0JNYQ9QBIjDfqkZHkW-0/edit#gid=0)
+* [Congressional Election results from The Daily Kos](https://docs.google.com/spreadsheets/d/1whYBonfwlgTGnYl7U_IH31G0JNYQ9QBIjDfqkZHkW-0/edit#gid=0)
 * [The MIT Election Data & Science Lab](https://electionlab.mit.edu)
 * [Shapefiles from MGGG States](https://github.com/mggg-states)
 * [Ensembles (from the _Political Geometry_ Introduction)](https://github.com/political-geometry/chapter-0-introduction)
