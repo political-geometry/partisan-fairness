@@ -80,6 +80,8 @@ def compute_signed_area_between_curves(votes, seats):
                 cumulative_sum = cumulative_sum + area
             else:
                 cumulative_sum = cumulative_sum - area
+
+    cumulative_sum = cumulative_sum/2
     return cumulative_sum
 
 
@@ -90,6 +92,8 @@ def compute_unsigned_area_between_curves(votes, seats):
     for i in range(len(reversed_votes) - 2):
         area = np.abs(reversed_votes[i] - votes[i + 1]) * np.abs(reversed_seats[i] - seats[i + 2])
         cumulative_sum = cumulative_sum + area
+
+    cumulative_sum = cumulative_sum/2
     return cumulative_sum
 
 
@@ -176,16 +180,20 @@ def plot_ups(actual_vote_share, actual_seat_share, votes, seats, text='', x_labe
     configure_plot(plt, ax, x_label=x_label, text=text)
 
 
-def plot_bulk_ups(actual_vote_shares, actual_seat_shares, bulk_votes, bulk_seats, text='',
+def plot_bulk_ups(actual_vote_shares, actual_seat_shares, bulk_votes, bulk_seats, all_votes, all_seats, text='',
                   x_label=average_district_vote_share_label):
     fig = plt.figure()
     ax = fig.add_subplot(111)
+
     for i in range(len(bulk_seats)):
         votes = bulk_votes[i]
         seats = bulk_seats[i]
         add_actual_election(ax, actual_vote_shares[i], actual_seat_shares[i], semi_transparent=True)
         add_ups_curve(ax, votes, seats, semi_transparent=True)
 
+    all_seats = np.array(all_seats)
+    average_ups = np.mean(all_seats, axis=0)
+    plt.plot(all_votes[0], average_ups, 'k', linewidth=1.5)
     configure_plot(plt, ax, x_label=x_label, text=text)
 
 
@@ -324,7 +332,7 @@ def configure_plot(plt, ax, x_label, text=''):
     ax.set_ylim((-y_buff, 1 + y_buff))
 
 
-def make_partisan_symmetry_table(labels, actual_vote_share_list, actual_seat_share_list, vote_list, seat_list,
+def make_partisan_symmetry_table(labels, actual_vote_share_list, actual_seat_share_list, vote_list, seat_list, district_vote_shares,
                                  latex=False):
     N = 6
     if not latex:
@@ -345,16 +353,16 @@ def make_partisan_symmetry_table(labels, actual_vote_share_list, actual_seat_sha
         votes = vote_list[i]
         seats = seat_list[i]
 
-        mean_median = 0.5 - compute_mean_median_intercept(votes, seats)
+        mean_median = np.median(district_vote_shares[i]) - np.mean(district_vote_shares[i])
         partisan_bias = compute_partisan_bias_intercept(votes, seats) - 0.5
 
         symmetric_s, s_intersect_symmetric = compute_symmetric_intercept(rep_vote_share, rep_seat_share, votes, seats)
-        partisan_symmetry = s_intersect_symmetric - symmetric_s
+        partisan_symmetry = (s_intersect_symmetric - symmetric_s)/2
         signed_area = compute_signed_area_between_curves(votes, seats)
         unsigned_area = compute_unsigned_area_between_curves(votes, seats)
-        print(row_format.format(labels[i], str(round(signed_area, 2)), str(round(unsigned_area, 2)),
-                                str(round(partisan_symmetry, 2)),
-                                str(round(partisan_bias, 2)), str(round(mean_median, 2))))
+        print(row_format.format(labels[i], str(np.round(signed_area, 3)), str(np.round(unsigned_area, 3)),
+                                str(np.round(partisan_symmetry, 3)),
+                                str(np.round(partisan_bias, 3)), str(np.round(mean_median, 3))))
 
     if latex:
         print("\\hline \n \\end{tabular}")
@@ -403,8 +411,8 @@ def make_competitiveness_table_for_state(republican_votes, democrat_votes, latex
                                 margin_of_victory_votes))
 
     if latex:
-        print("\\hline \n Total & {} & {}\\% & {}R/{}D &   &  \\\\".format(round(cumulative_votes, 2), round(
-            100 * cumulative_republican_votes / cumulative_votes, 2), r_districts, d_districts))
+        print("\\hline \n Total & {} & {}\\% & {}R/{}D &   &  \\\\".format(round(cumulative_votes, 3), round(
+            100 * cumulative_republican_votes / cumulative_votes, 3), r_districts, d_districts))
         print("\\end{tabular}")
 
 
@@ -468,4 +476,3 @@ def make_wasted_votes_table_for_state(republican_votes, democrat_votes, latex=Fa
 
     print('\n Efficiency gap: ',
           round((cumulative_wasted_d_votes - cumulative_wasted_r_votes) / total_election_votes, 4))
-
