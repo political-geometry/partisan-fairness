@@ -1,4 +1,4 @@
-# Chapter 1: Measuring partisan fairness
+# Measuring partisan fairness
 
 ## The basics
 
