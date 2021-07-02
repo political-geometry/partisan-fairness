@@ -226,7 +226,6 @@ def district_vote_shares_to_vote_and_seat_shares(vote_shares_by_district):
 
 def read_daily_kos_data(include_loser_bonus_states=True):
     year_to_row = {2016: 3, 2012: 5, 2008: 7}
-    result_row = 2
 
     votes = []
     seats = []
