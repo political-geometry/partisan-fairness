@@ -1,9 +1,11 @@
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-
 import math
 import numpy as np
 from scipy import stats
+
+# This file contains plotting functions and other things deemed too ugly for Notebooks.
+
 
 dpi = 100
 mpl.rcParams['figure.dpi'] = dpi
@@ -38,12 +40,17 @@ average_district_vote_share_label = "Average district Republican vote share"
 statewide_vote_share_label = "Statewide Republican vote share"
 
 
-def compute_mean_median_intercept(votes, seats):
-    v_intersect = np.interp(0.5, seats, votes)
-    indices_where_votes_equal_point_five = np.argwhere(votes == 0.5)
-    if len(indices_where_votes_equal_point_five) > 0:
-        if seats[indices_where_votes_equal_point_five[0][0]] == 0.5:
-            v_intersect = 0.5
+# This calculates the horizontal distance between the seats-votes curve and the point (0.5, 0.5)
+# This is approximately equal to the mean-median score, and is exactly equal under the equal turnout assumption
+def compute_approximate_mean_median_intercept(votes, seats):
+    indices_where_seats_equal_point_five = np.argwhere(np.isclose(seats, 0.5))
+    if len(indices_where_seats_equal_point_five) > 0:
+        min_votes_at_half_s = votes[np.min(indices_where_seats_equal_point_five)]
+        max_votes_at_half_s = votes[np.max(indices_where_seats_equal_point_five)]
+        v_intersect = 0.5 * (max_votes_at_half_s + min_votes_at_half_s)
+    else:
+        v_intersect = np.interp(0.5, seats, votes)
+
     return v_intersect
 
 
@@ -81,7 +88,7 @@ def compute_signed_area_between_curves(votes, seats):
             else:
                 cumulative_sum = cumulative_sum - area
 
-    cumulative_sum = cumulative_sum/2
+    cumulative_sum = cumulative_sum / 2
     return cumulative_sum
 
 
@@ -93,7 +100,7 @@ def compute_unsigned_area_between_curves(votes, seats):
         area = np.abs(reversed_votes[i] - votes[i + 1]) * np.abs(reversed_seats[i] - seats[i + 2])
         cumulative_sum = cumulative_sum + area
 
-    cumulative_sum = cumulative_sum/2
+    cumulative_sum = cumulative_sum / 2
     return cumulative_sum
 
 
@@ -114,8 +121,8 @@ def add_actual_election(ax, actual_vote_share, actual_seat_share, point_label=""
                 ha='center', fontname=font_name)
 
 
-def add_mean_median(ax, votes, seats):
-    v_intersect = compute_mean_median_intercept(votes, seats)
+def add_approximate_mean_median(ax, votes, seats):
+    v_intersect = compute_approximate_mean_median_intercept(votes, seats)
     mean_median_x = [v_intersect, v_intersect, 0.5, 0.5]
     mean_median_y = [0.5 - metric_buffer, 0.5 + metric_buffer, 0.5 + metric_buffer, 0.5 - metric_buffer]
 
@@ -150,6 +157,7 @@ def add_flipped_and_shaded_curve(ax, votes, seats):
     for i in range(len(reversed_votes) - 2):
         x = [reversed_votes[i], reversed_votes[i], votes[i + 1], votes[i + 1]]
         y = [reversed_seats[i], seats[i + 2], seats[i + 2], reversed_seats[i]]
+
         ax.fill(x, y, facecolor=ups_color_shaded)
 
 
@@ -167,7 +175,7 @@ def plot_mean_mean_and_partisan_bias(actual_vote_share, actual_seat_share, votes
     ax = fig.add_subplot(111)
     add_actual_election(ax, actual_vote_share, actual_seat_share)
     add_ups_curve(ax, votes, seats)
-    add_mean_median(ax, votes, seats)
+    add_approximate_mean_median(ax, votes, seats)
     add_partisan_bias(ax, votes, seats)
     configure_plot(plt, ax, x_label=x_label, text=text)
 
@@ -245,7 +253,7 @@ def plot_mean_median_and_partisan_bias_grid(labels, actual_vote_share_list, actu
         seats = seat_list[i]
         add_actual_election(ax, rep_vote_share, rep_seat_share)
         add_ups_curve(ax, votes, seats)
-        add_mean_median(ax, votes, seats)
+        add_approximate_mean_median(ax, votes, seats)
         add_partisan_bias(ax, votes, seats)
         configure_plot(plt, axs[math.floor(i / 2), i % 2], x_label=x_label, text=labels[i])
 
@@ -278,7 +286,7 @@ def plot_all_measures_grid(labels, actual_vote_share_list, actual_seat_share_lis
         add_actual_election(ax, rep_vote_share, rep_seat_share)
         add_ups_curve(ax, votes, seats)
         add_partisan_symmetry(ax, rep_vote_share, rep_seat_share, votes, seats)
-        add_mean_median(ax, votes, seats)
+        add_approximate_mean_median(ax, votes, seats)
         add_partisan_bias(ax, votes, seats)
         add_flipped_and_shaded_curve(ax, votes, seats)
         configure_plot(plt, axs[math.floor(i / 2), i % 2], x_label=x_label, text=labels[i])
@@ -332,7 +340,8 @@ def configure_plot(plt, ax, x_label, text=''):
     ax.set_ylim((-y_buff, 1 + y_buff))
 
 
-def make_partisan_symmetry_table(labels, actual_vote_share_list, actual_seat_share_list, vote_list, seat_list, district_vote_shares,
+def make_partisan_symmetry_table(labels, actual_vote_share_list, actual_seat_share_list, vote_list, seat_list,
+                                 district_vote_shares,
                                  latex=False):
     N = 6
     if not latex:
@@ -357,7 +366,7 @@ def make_partisan_symmetry_table(labels, actual_vote_share_list, actual_seat_sha
         partisan_bias = compute_partisan_bias_intercept(votes, seats) - 0.5
 
         symmetric_s, s_intersect_symmetric = compute_symmetric_intercept(rep_vote_share, rep_seat_share, votes, seats)
-        partisan_symmetry = (s_intersect_symmetric - symmetric_s)/2
+        partisan_symmetry = (s_intersect_symmetric - symmetric_s) / 2
         signed_area = compute_signed_area_between_curves(votes, seats)
         unsigned_area = compute_unsigned_area_between_curves(votes, seats)
         print(row_format.format(labels[i], str(np.round(signed_area, 3)), str(np.round(unsigned_area, 3)),

@@ -1,8 +1,9 @@
 import csv
 import pandas as pd
 import numpy as np
-import shapefile
-import matplotlib.pyplot as plt
+
+# This file contains reproductions of functions that are defined within Notebooks.
+# It is used in make_figures_for_chapter.nb to collect and run all relevant scripts needed for figures
 
 bar_plot_color = [0.36078431372549, 0.682352941176471, 0.611764705882353]
 dt = 0.01
@@ -67,7 +68,9 @@ def make_table_comparing_eg_expressions(states, latex=False):
 
 def ups_linear(vote_share_by_district):
     num_divisions = 1000
-    vote_swings = np.arange(-1, 1, 1 / num_divisions)
+    dt = 1/num_divisions
+
+    vote_swings = np.linspace(-1, 1 + dt, num_divisions)
 
     votes = []
     seats = []
@@ -81,12 +84,44 @@ def ups_linear(vote_share_by_district):
         new_election[new_election < 0] = 0
         new_election[new_election > 1] = 1
 
-        new_seats = len(np.where(np.array(new_election) > 0.5)[0]) / len(new_election)
+        new_seats = len(np.where(np.array(new_election) > 0.5)[0])
 
         votes.append(np.mean(new_election))
         seats.append(new_seats)
 
-    interpolated_votes = np.arange(0, 1, 1 / num_divisions)
+    interpolated_votes = np.linspace(0, 1 + dt, num_divisions)
+    interpolated_seats = np.floor(np.interp(interpolated_votes, votes, seats)) / len(vote_share_by_district)
+
+    return interpolated_votes, interpolated_seats
+
+
+def ups_linear_using_statewide_vote_share(republican_votes_by_district, democrat_votes_by_district):
+    num_divisions = 1000
+    dt = 1/num_divisions
+    vote_swings = np.linspace(-1, 1 + dt, num_divisions)
+
+    votes = []
+    seats = []
+
+    vote_share_by_district, *_ = votes_to_shares_by_district(republican_votes_by_district, democrat_votes_by_district)
+    republican_statewide_vote_share, *_ = votes_to_overall_vote_share(republican_votes_by_district,
+                                                                      democrat_votes_by_district)
+
+    for i in range(len(vote_swings)):
+        delta_v = vote_swings[i]
+        new_election = np.array(vote_share_by_district) + np.ones(np.shape(vote_share_by_district)) * delta_v
+
+        # Handle unrealistic edge conditions outside the interval [0, 1]
+        # If this is unsatisfying to you, check out ups_logit in utilities.py
+        new_election[new_election < 0] = 0
+        new_election[new_election > 1] = 1
+
+        new_seats = len(np.where(np.array(new_election) > 0.5)[0]) / len(new_election)
+
+        votes.append(republican_statewide_vote_share + delta_v)
+        seats.append(new_seats)
+
+    interpolated_votes = np.linspace(0, 1 + dt, num_divisions)
     interpolated_seats = np.floor(np.interp(interpolated_votes, votes, seats) * len(vote_share_by_district)) / len(
         vote_share_by_district)
 
@@ -123,7 +158,8 @@ def get_two_party_votes(state, year):
             print('Warning! No Republican candidate in ' + state + ' District ' + str(i + 1) + ' in ' + str(year))
             republican_votes_by_district.append(0)
         else:
-            # The next lines are to handle the way New York's data is reported:
+            # The next lines are to handle the way New York's data is reported
+            # In New York, the same candidate can run for multiple parties
             matches_candidate_name = results_in_state_and_year['candidate'] == \
                                      republican_in_district['candidate'].values[0]
             republican_in_district = results_in_state_and_year[in_district & matches_candidate_name & not_a_write_in]
@@ -139,7 +175,8 @@ def get_two_party_votes(state, year):
             print('Warning! No Democrat candidate in ' + state + ' District ' + str(i + 1) + ' in ' + str(year))
             democrat_votes_by_district.append(0)
         else:
-            # The next are to handle the way New York's data is reported:
+            # The next are to handle the way New York's data is reported
+            # In New York, the same candidate can run for multiple parties
             matches_candidate_name = results_in_state_and_year['candidate'] == democrat_in_district['candidate'].values[
                 0]
             democrat_in_district = results_in_state_and_year[in_district & matches_candidate_name & not_a_write_in]
@@ -213,11 +250,9 @@ def read_daily_kos_data(include_loser_bonus_states=True):
 
                     presidential_results = [float(row[year_to_row[year]]), float(row[year_to_row[year] + 1])]
 
-                    result = row[result_row]
-                    result_code = -1
-                    if result == '(R)':
+                    if presidential_results[1] > presidential_results[0]:
                         result_code = 0
-                    if result == '(D)':
+                    else:
                         result_code = 1
 
                     if two_letter_state in state_election_dictionary:
@@ -238,10 +273,9 @@ def read_daily_kos_data(include_loser_bonus_states=True):
 
             republican_vote_share = 0
             for district in all_presidential_results:
-                republican_vote_share = republican_vote_share + district[1]
+                republican_vote_share = republican_vote_share + district[1]/(district[1] + district[0])
 
             republican_vote_share = republican_vote_share / len(all_presidential_results)
-            republican_vote_share = republican_vote_share / 100.0
 
             republican_seat_share = 0
             for district in all_state_results:
@@ -263,6 +297,7 @@ def read_daily_kos_data(include_loser_bonus_states=True):
                         loser_bonus_state_count = loser_bonus_state_count + 1
     return votes, seats
 
+
 # Get overall statewide vote share for each party
 def votes_to_overall_vote_share(party_a_votes, party_b_votes):
     party_a_total = np.sum(party_a_votes)
@@ -271,33 +306,3 @@ def votes_to_overall_vote_share(party_a_votes, party_b_votes):
     party_a_statewide_vote_share = party_a_total / (party_a_total + party_b_total)
     party_b_statewide_vote_share = party_b_total / (party_a_total + party_b_total)
     return party_a_statewide_vote_share, party_b_statewide_vote_share
-
-
-def ups_linear_using_statewide_vote_share(republican_votes_by_district, democrat_votes_by_district):
-    num_divisions = 1000
-    vote_swings = np.arange(-1, 1, 1 / num_divisions)
-
-    votes = []
-    seats = []
-
-    vote_share_by_district, *_ = votes_to_shares_by_district(republican_votes_by_district, democrat_votes_by_district)
-    republican_statewide_vote_share, *_ = votes_to_overall_vote_share(republican_votes_by_district,
-                                                                      democrat_votes_by_district)
-
-    for i in range(len(vote_swings)):
-        delta_v = vote_swings[i]
-        new_election = np.array(vote_share_by_district) + np.ones(np.shape(vote_share_by_district)) * delta_v
-
-        new_election[new_election < 0] = 0
-        new_election[new_election > 1] = 1
-
-        new_seats = len(np.where(np.array(new_election) > 0.5)[0]) / len(new_election)
-
-        votes.append(republican_statewide_vote_share + delta_v)
-        seats.append(new_seats)
-
-    interpolated_votes = np.arange(0, 1, 1 / num_divisions)
-    interpolated_seats = np.floor(np.interp(interpolated_votes, votes, seats) * len(vote_share_by_district)) / len(
-        vote_share_by_district)
-
-    return interpolated_votes, interpolated_seats
